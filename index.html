@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="drumbeats" ng-controller="AppCtrl">
+<head>
+	<meta charset="UTF-8">
+	
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black">
+	<link rel="apple-touch-icon-precomposed" href="/assets/img/touchicon.png" type="image/png">
+	<link rel="shortcut icon" href="/assets/img/touchicon.png" type="image/png">
+	
+	<link rel="stylesheet" href="/assets/css/base.css" type="text/css">
+	
+	<title>Drumbeats</title>
+</head>
+<body>
+	
+	<main ng-controller="BeatCtrl">
+		<ul class="list-unstyled measures">
+			<li ng-repeat="measure in [1,2]" class="measure">
+				<ul class="list-inline guides">
+					<li ng-repeat="guide in guides" class="guide" ng-class="{'guide-major': guide < 0 && (guide % 1 == 0), 'guide-bar': guide > 0}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}"></li>
+					<li ng-repeat="guide in guides" class="lyric lyric-{{ lyric(guide, beat, true) }}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}">{{ lyric(guide, beat) }}</li>
+				</ul>
+				<ul class="list-unstyled channels">
+					<li ng-repeat="channel in beat.channels" class="channel channel-{{ channel.name.toLowerCase() }}">
+						<ul class="list-inline spots" ng-if="editing">
+							<li ng-repeat="spot in spots | filterNotesByMeasure:beat:measure" ng-click="addNote(channel, spot)" class="spot" ng-style="{left: progress(spot, beat) * 100 + '%'}"></li>
+						</ul>
+						<ul class="list-inline notes">
+							<li ng-repeat="note in channel.notes | filterNotesByMeasure:beat:measure" ng-click="editing ? ($event.altKey ? alterNote(channel, note) : removeNote(channel, note)) : null" class="note" ng-class="{'note-alt': number(note) < 0, 'note-hit': $marker.position >= progress(note, beat)}" ng-style="{left: progress(note, beat) * 100 + '%'}"></li>
+						</ul>
+					</li>
+				</ul>
+				<i class="indicator" ng-style="{left: $marker.position * 100 + '%'}"></i>
+			</li>
+		</ul>
+		
+		<br>
+		
+		<fieldset>
+			<input type="number" ng-model="beat.barsPerMeasure" min="1">
+			<input type="number" ng-model="beat.beatsPerBar" min="2">
+			<select ng-model="beat.beatUnit" ng-options="b for b in [2,4,8,16]"></select>
+		</fieldset>
+		
+		<fieldset>
+			<button ng-click="$marker.play()">Play</button>
+			<button ng-click="$marker.pause()">Pause</button>
+			<button ng-click="$marker.stop()">Stop</button>
+		</fieldset>
+		
+		<fieldset>
+			<input type="number" ng-model="$marker.$bpm">
+			<button ng-repeat="b in [60, 90, 100, 120]" ng-click="$marker.play(b)">{{ b }}</button>
+		</fieldset>
+		
+		<label>
+			<input type="checkbox" ng-model="editing"> Edit Mode
+		</label>
+		<input type="number" ng-model="$shiftNotesAmount">
+		<button ng-click="shiftNotes($shiftNotesAmount)">Shift</button>
+	</main>
+	
+	<!-- Scripts -->
+	<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
+	<script src="//cdn.firebase.com/js/client/1.0.15/firebase.js"></script>
+	<script src="//cdn.firebase.com/libs/angularfire/0.8.2/angularfire.min.js"></script>
+	
+	<script src="/assets/js/base.js"></script>
+</body>
+</html>
