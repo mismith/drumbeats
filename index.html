@@ -17,7 +17,7 @@
 	
 	<main ng-controller="BeatCtrl">
 		<ul class="list-unstyled measures">
-			<li ng-repeat="measure in [1,2]" class="measure">
+			<li ng-repeat="measure in getMeasures(beat, editing)" class="measure">
 				<ul class="list-inline guides">
 					<li ng-repeat="guide in guides" class="guide" ng-class="{'guide-major': guide < 0 && (guide % 1 == 0), 'guide-bar': guide > 0}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}"></li>
 					<li ng-repeat="guide in guides" class="lyric lyric-{{ lyric(guide, beat, true) }}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}">{{ lyric(guide, beat) }}</li>
@@ -25,14 +25,14 @@
 				<ul class="list-unstyled channels">
 					<li ng-repeat="channel in beat.channels" class="channel channel-{{ channel.name.toLowerCase() }}">
 						<ul class="list-inline spots" ng-if="editing">
-							<li ng-repeat="spot in spots | filterNotesByMeasure:beat:measure" ng-click="addNote(channel, spot)" class="spot" ng-style="{left: progress(spot, beat) * 100 + '%'}"></li>
+							<li ng-repeat="spot in spots" ng-click="addNote(channel, measure, spot)" class="spot" ng-style="{left: progress(spot, beat) * 100 + '%'}"></li>
 						</ul>
 						<ul class="list-inline notes">
-							<li ng-repeat="note in channel.notes | filterNotesByMeasure:beat:measure" ng-click="editing ? ($event.altKey ? alterNote(channel, note) : removeNote(channel, note)) : null" class="note" ng-class="{'note-alt': number(note) < 0, 'note-hit': $marker.position >= progress(note, beat)}" ng-style="{left: progress(note, beat) * 100 + '%'}"></li>
+							<li ng-repeat="note in channel.notes | filterNotesByMeasure:beat:measure" ng-click="editing ? ($event.altKey ? alterNote(channel, note) : removeNote(channel, note)) : null" class="note" ng-class="{'note-alt': note < 0, 'note-hit': measure == $marker.measure && $marker.position >= progress(note, beat)}" ng-style="{left: progress(note, beat) * 100 + '%'}"></li>
 						</ul>
 					</li>
 				</ul>
-				<i class="indicator" ng-style="{left: $marker.position * 100 + '%'}"></i>
+				<i class="indicator" ng-if="measure == $marker.measure" ng-style="{left: $marker.position * 100 + '%'}"></i>
 			</li>
 		</ul>
 		

@@ -78,7 +78,8 @@ gulp
 	.task('watch', ['js.watch','less.watch'], function(){
 		browserSync.init({
 			files: globs.files,
-			proxy: PROXY_ADDR,
+			//proxy: PROXY_ADDR,
+			server: {baseDir: './'},
 			watchOptions: {debounce: 400},
 			ghostMode: false,
 			notify: false,
