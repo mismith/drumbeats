@@ -39,9 +39,18 @@
 		<br>
 		
 		<fieldset>
-			<input type="number" ng-model="beat.barsPerMeasure" min="1">
-			<input type="number" ng-model="beat.beatsPerBar" min="2">
-			<select ng-model="beat.beatUnit" ng-options="b for b in [2,4,8,16]"></select>
+			<label>
+				Bars Per Line
+				<input type="number" ng-model="beat.barsPerMeasure" min="1">
+			</label>
+			<label>
+				Beats Per Bar
+				<input type="number" ng-model="beat.beatsPerBar" min="2">
+			</label>
+			<label>
+				Beat Unit
+				<select ng-model="beat.beatUnit" ng-options="b for b in [2,4,8,16]"></select>
+			</label>
 		</fieldset>
 		
 		<fieldset>
@@ -58,8 +67,6 @@
 		<label>
 			<input type="checkbox" ng-model="editing"> Edit Mode
 		</label>
-		<input type="number" ng-model="$shiftNotesAmount">
-		<button ng-click="shiftNotes($shiftNotesAmount)">Shift</button>
 	</main>
 	
 	<!-- Scripts -->

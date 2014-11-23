@@ -21,7 +21,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 				},
 				{
 					name: 'HiHat',
-					notes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+					notes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
 				},
 				{
 					name: 'Snare',
@@ -56,18 +56,22 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		};
 		var setSpots = function(beat){
 			$scope.spots = [];
-			for(var i = 1; i < beatsPerMeasure(beat) + 1; i += beat.beatsPerBar/beat.beatUnit) $scope.spots.push(i);
+			for(var i = 1; i < beat.beatUnit / beat.beatsPerBar * beat.barsPerMeasure + 1; i += beat.beatsPerBar/beat.beatUnit) $scope.spots.push(i);
 			//console.log($scope.spots);
 		}
 		setSpots($scope.beat);
 		
 		var setGuides = function(beat){
 			$scope.guides = [];
-			for(var i = 1; i < beatsPerMeasure(beat) + 1; i += beat.beatsPerBar/beat.beatUnit) $scope.guides.push((i - 1) % beat.beatsPerBar ? -i : i);
+			for(var i = 1; i < beat.beatUnit / beat.beatsPerBar * beat.barsPerMeasure + 1; i += beat.beatsPerBar/beat.beatUnit) $scope.guides.push((i - 1) % beat.beatsPerBar ? -i : i);
 			//console.log($scope.guides);
 		}
 		setGuides($scope.beat);
 		
+		$scope.$watch('beat.barsPerMeasure', function(){
+			setSpots($scope.beat);
+			setGuides($scope.beat);
+		});
 		$scope.$watch('beat.beatsPerBar', function(){
 			setSpots($scope.beat);
 			setGuides($scope.beat);
@@ -92,7 +96,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 			//console.log(max);
 			return max;
 		};
-		getLength($scope.beat);
+		//getLength($scope.beat);
 		
 		$scope.getMeasures = function(beat, editing){
 			var measures = [];
@@ -135,10 +139,13 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 			},
 			$refresh: function(){
 				$scope.$apply(function(){
-					var elapsed = now() - $marker.$start;
-					period = 1000 * 60 / $marker.$bpm * beatsPerMeasure($scope.beat);
-					$marker.measure = Math.floor(elapsed / period) + 1;
+					var elapsed = now() - $marker.$start,
+						period = 1000 * 60 / $marker.$bpm * beatsPerMeasure($scope.beat);
 					$marker.position = Math.min(Math.max(0, (elapsed % period) / period), 1);
+					
+					var measuresCount = $scope.getMeasures($scope.beat, $scope.editing).length,
+						measure = Math.floor(elapsed / period) + 1;
+					$marker.measure = measure > measuresCount ? ((measure + 1) % measuresCount) + 1 : measure;
 				});
 				
 				if($marker.$playing) requestAnimationFrame($marker.$refresh);
@@ -188,6 +195,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 			var i = channel.notes.indexOf(note);
 			if(i >= 0) channel.notes.splice(i, 1);
 		};
+/*
 		$scope.shiftNotes = function(amount){
 			if( ! amount) return;
 			
@@ -198,6 +206,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 			});
 			//console.log($scope.beat);
 		};
+*/
 		
 	})
 	
@@ -209,7 +218,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 				max = (measure - 0) * beat.beatsPerBar * beat.barsPerMeasure;
 			
 			return array.filter(function(v){
-				return min + 1 < v && v < max + 1; // + 1's to account for 1-based index
+				return min + 1 <= v && v < max + 1; // + 1's to account for 1-based index
 			});
 		};
 	})
@@ -217,5 +226,4 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 	
 	
 	
-	// @TODO: clicking 0/first spot doesn't add a note properly
 	// @TODO: marker.position resetting/wrapping
