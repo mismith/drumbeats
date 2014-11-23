@@ -2,95 +2,108 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 	
 	.controller('AppCtrl', function($scope, $rootScope, $firebaseHelper){
 		$rootScope.console = console;
+		
+		$rootScope.editing = false;
 	})
 	
 	.controller('BeatCtrl', function($scope, $rootScope, $timeout){
+		$scope.$channels = [
+			{
+				'.priority': 1.0,
+				$id: 'bass',
+				name: 'Bass',
+			},
+			{
+				'.priority': 2.0,
+				$id: 'hihat',
+				name: 'HiHat',
+			},
+			{
+				'.priority': 3.0,
+				$id: 'snare',
+				name: 'Snare',
+			},
+			{
+				'.priority': 4.0,
+				$id: 'ride',
+				name: 'Ride',
+			},
+			{
+				'.priority': 5.0,
+				$id: 'crash',
+				name: 'Crash',
+			},
+			{
+				'.priority': 6.0,
+				$id: 'hitom',
+				name: 'Hi Tom',
+			},
+			{
+				'.priority': 7.0,
+				$id: 'lotom',
+				name: 'Lo Tom',
+			},
+			{
+				'.priority': 8.0,
+				$id: 'floortom',
+				name: 'Floor Tom',
+			},
+		];
 		$scope.beat = {
 			name: 'Beginner',
 			
-			// time signature
+			// timing + display
 			beatsPerBar: 4,
-			beatUnit: 16,
-			barsPerMeasure: 2,
+			barsPerLine: 2,
 			
 			// data
-			channels: [
-				{
-					name: 'Bass',
-					notes: [3, 7, 11, 15],
-				},
-				{
-					name: 'HiHat',
-					notes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
-				},
-				{
-					name: 'Snare',
-					notes: [1, 5, 9, 13],
-				},
-				{
-					name: 'Ride',
-					//notes: [7],
-				},
-				{
-					name: 'Crash',
-					//notes: [17],
-				},
-				{
-					name: 'HiTom',
-					//notes: [16.25],
-				},
-				{
-					name: 'LoTom',
-					//notes: [16.5],
-				},
-				{
-					name: 'FloorTom',
-					//notes: [16.75],
-				},
-			],
+			channels: {
+				bass:  [3, 7, 11, 15],
+				hihat: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+				snare: [1, 5, 9, 13],
+			},
 		};
+		$scope.beats = [
+			$scope.beat,
+		];
 		
 		// timing
-		var beatsPerMeasure = function(beat){
-			return beat.beatsPerBar * beat.barsPerMeasure;
+		var beatsPerLine = function(beat){
+			return beat.beatsPerBar * beat.barsPerLine;
 		};
-		var setSpots = function(beat){
-			$scope.spots = [];
-			for(var i = 1; i < beat.beatUnit / beat.beatsPerBar * beat.barsPerMeasure + 1; i += beat.beatsPerBar/beat.beatUnit) $scope.spots.push(i);
-			//console.log($scope.spots);
+		var beatSubunit = function(beat){
+			if(beat.beatsPerBar % 4 == 0){
+				return 1/4;
+			}else if(beat.beatsPerBar % 3 == 0){
+				return 1/3;
+			}
+			return 1/2;
+		};
+		
+		var incrementArray = function(beat){
+			var array = [];
+			var increment = beatSubunit(beat);
+			for(var i = 0; i < beat.barsPerLine / beatSubunit(beat) * beat.beatsPerBar; i++){
+				var item = i * increment + 1;
+				array.push(item);
+			}
+			//console.log(array);
+			return array;
 		}
-		setSpots($scope.beat);
-		
-		var setGuides = function(beat){
-			$scope.guides = [];
-			for(var i = 1; i < beat.beatUnit / beat.beatsPerBar * beat.barsPerMeasure + 1; i += beat.beatsPerBar/beat.beatUnit) $scope.guides.push((i - 1) % beat.beatsPerBar ? -i : i);
-			//console.log($scope.guides);
-		}
-		setGuides($scope.beat);
-		
-		$scope.$watch('beat.barsPerMeasure', function(){
-			setSpots($scope.beat);
-			setGuides($scope.beat);
-		});
-		$scope.$watch('beat.beatsPerBar', function(){
-			setSpots($scope.beat);
-			setGuides($scope.beat);
-		});
-		$scope.$watch('beat.beatUnit', function(){
-			setSpots($scope.beat);
-			setGuides($scope.beat);
+		$scope.$watchCollection('beat', function(){
+			$scope.guides = incrementArray($scope.beat);
 		});
 		
-		
+		// math
 		var getLength = function(beat){
 			// get last set note index
 			var max = 0;
 			angular.forEach(beat.channels, function(channel){
-				max = Math.max(max, channel.notes ? Math.max.apply(null, channel.notes) - 1 : 0);
+				max = Math.max(max, channel ? Math.max.apply(null, channel) - 1 : 0);
 			});
 			
-			// round it up to the nearest multiple of beatsPerMeasure
-			var period = beatsPerMeasure(beat);
+			// round it up to the nearest multiple of beatsPerLine
+			var period = beatsPerLine(beat);
 			max = max - (max % period) + (max % period > 0 && period);
 			
 			//console.log(max);
@@ -101,7 +114,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		$scope.getMeasures = function(beat, editing){
 			var measures = [];
 			// if editing enabled, + 1 to keep an empty period at the bottom to add new stuff
-			for(var i = 1; i <= getLength(beat) / beatsPerMeasure(beat) + (editing ? 1 : 0); i++){
+			for(var i = 1; i <= getLength(beat) / beatsPerLine(beat) + (editing ? 1 : 0); i++){
 				measures.push(i);
 			}
 			//console.log(measures);
@@ -140,7 +153,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 			$refresh: function(){
 				$scope.$apply(function(){
 					var elapsed = now() - $marker.$start,
-						period = 1000 * 60 / $marker.$bpm * beatsPerMeasure($scope.beat);
+						period = 1000 * 60 / $marker.$bpm * beatsPerLine($scope.beat);
 					$marker.position = Math.min(Math.max(0, (elapsed % period) / period), 1);
 					
 					var measuresCount = $scope.getMeasures($scope.beat, $scope.editing).length,
@@ -156,52 +169,52 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		// display
 		$scope.progress = function(note, beat, noAdjust){
 			// subtract 1 to go from 1-based-index to 0-based
-			return (Math.abs(note) - 1) % beatsPerMeasure(beat) / beatsPerMeasure(beat);
+			return ((Math.abs(note) - 1) % beatsPerLine(beat)) / beatsPerLine(beat);
 		};
 		$scope.lyric = function(guide, beat, returnType){
-			var mod = (Math.abs(guide) - 1) % 1;
-			//if(returnType) return parseInt(mod * beat.beatsPerBar);
+			var subunit   = beatSubunit(beat),
+				remainder = (guide - parseInt(guide));
 			
-			if(mod == 0){
-				return returnType ? 'note' : (Math.abs(guide) - 1) % beat.beatsPerBar + 1;
-			}else if(mod <= 1/4){
+			if(0 < remainder && remainder <= 101/400){
 				return 'e';
-			}else if(2/3 <= mod){
+			}else if(99/300 <= remainder && remainder <= 101/200){
+				return '&';
+			}else if(199/300 <= remainder){
 				return 'a';
 			}else{
-				return returnType ? 'and' : '&';
+				return (guide - 1) % beat.beatsPerBar + 1;
 			}
 		};
 		
 		// editing
 		$scope.addNote = function(channel, measure, spot){
-			if( ! channel.notes) channel.notes = [];
+			if( ! channel) channel = [];
 			
-			var note = spot + (measure - 1) * beatsPerMeasure($scope.beat);
+			var note = spot + (measure - 1) * beatsPerLine($scope.beat);
 			
-			channel.notes.push(note);
+			channel.push(note);
 			
 			//console.log(spot, measure, note);
 		};
 		$scope.alterNote = function(channel, note){
-			var i = channel.notes.indexOf(note);
+			var i = channel.indexOf(note);
 			
 			//console.log(i, note);
-			if(i >= 0) channel.notes[i] = -channel.notes[i];
+			if(i >= 0) channel[i] = -channel[i];
 		};
 		$scope.removeNote = function(channel, note){
-			if( ! channel.notes) channel.notes = [];
+			if( ! channel) channel = [];
 			
-			var i = channel.notes.indexOf(note);
-			if(i >= 0) channel.notes.splice(i, 1);
+			var i = channel.indexOf(note);
+			if(i >= 0) channel.splice(i, 1);
 		};
 /*
 		$scope.shiftNotes = function(amount){
 			if( ! amount) return;
 			
 			angular.forEach($scope.beat.channels, function(channel){
-				angular.forEach(channel.notes, function(note, i){
-					channel.notes[i] += amount;
+				angular.forEach(channel, function(note, i){
+					channel[i] += amount;
 				});
 			});
 			//console.log($scope.beat);
@@ -214,8 +227,8 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		return function(array, beat, measure){
 			if( ! array) return array;
 			
-			var min = (measure - 1) * beat.beatsPerBar * beat.barsPerMeasure,
-				max = (measure - 0) * beat.beatsPerBar * beat.barsPerMeasure;
+			var min = (measure - 1) * beat.beatsPerBar * beat.barsPerLine,
+				max = (measure - 0) * beat.beatsPerBar * beat.barsPerLine;
 			
 			return array.filter(function(v){
 				return min + 1 <= v && v < max + 1; // + 1's to account for 1-based index
@@ -223,7 +236,19 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		};
 	})
 	
-	
-	
-	
-	// @TODO: marker.position resetting/wrapping
+	.directive('ngResize', function($window){
+		return function(scope, element, attrs){
+			var resize = function(e){
+				scope.$eval(attrs.ngResize, {
+					$width:  element[0].offsetWidth,
+					$height: element[0].offsetHeight,
+					$vw:     $window.innerWidth,
+					$vh:     $window.innerHeight,
+					$event:  e,
+				});
+			};
+			angular.element($window)
+				.on('resize', resize)
+				.on('load', resize);
+		};
+	})

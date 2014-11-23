@@ -12,6 +12,19 @@ fieldset {
 	margin: 0;
 }
 
+.grid-table {
+	display: table;
+	width: 100%;
+	
+	> * {
+		display: table-cell;
+		vertical-align: middle;
+		
+		&:last-child {
+			text-align: right;
+		}
+	}
+}
 .list-unstyled {
 	&,
 	> * {
@@ -157,10 +170,11 @@ fieldset {
 	height: 100%;
 	border-right: dotted 1px #000;
 	margin: 0;
-	opacity: .25;
+	opacity: .1;
 	
 	&.guide-major {
 		border-right-style: solid;
+		opacity: .33;
 	}
 	&.guide-bar {
 		border-right: solid 2px #000;
@@ -173,10 +187,12 @@ fieldset {
 	font-size: 10px;
 	margin-left: -2px;
 	
-	&.lyrics-note {}
-	&.lyrics-e,
-	&.lyrics-a,
-	&.lyrics-and, {
+	&.lyric-note {}
+	&.lyric-e,
+	&.lyric-a {
+		opacity: .25;
+	}
+	&.lyric-and {
 		opacity: .5;
 	}
 }

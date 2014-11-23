@@ -16,57 +16,71 @@
 <body>
 	
 	<main ng-controller="BeatCtrl">
-		<ul class="list-unstyled measures">
+		
+		<div class="grid-table">
+			<div ng-if=" ! editing">
+				<select ng-model="beat" ng-options="beat.name for beat in beats"></select>
+				<button ng-click="$root.editing = true">New</button>
+			</div>
+			<div ng-if="editing">
+				<input type="text" ng-model="beat.name" placeholder="Name">
+				<button ng-click="$root.editing = false">Delete</button>
+			</div>
+		
+			<div>
+				<label>
+					Bars Per Line
+					<input type="number" ng-model="beat.barsPerLine" min="1">
+				</label>
+				<label>
+					Beats Per Bar
+					<input type="number" ng-model="beat.beatsPerBar" min="2">
+				</label>
+			</div>
+			
+			<div ng-if=" ! editing">
+				<button ng-click="$root.editing = true">Edit</button>
+			</div>
+			<div ng-if="editing">
+				<button ng-click="$root.editing = false">Cancel</button>
+				<button ng-click="$root.editing = false">Save</button>
+			</div>
+		</div>
+		
+		<ul class="list-unstyled measures" ng-resize="width = $width">
 			<li ng-repeat="measure in getMeasures(beat, editing)" class="measure">
 				<ul class="list-inline guides">
-					<li ng-repeat="guide in guides" class="guide" ng-class="{'guide-major': guide < 0 && (guide % 1 == 0), 'guide-bar': guide > 0}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}"></li>
+					<li ng-repeat="guide in guides" class="guide" ng-class="{'guide-major': (guide - 1) % beat.beatsPerBar && (guide % 1 == 0), 'guide-bar': (guide - 1) % beat.beatsPerBar == 0}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}"></li>
 					<li ng-repeat="guide in guides" class="lyric lyric-{{ lyric(guide, beat, true) }}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}">{{ lyric(guide, beat) }}</li>
 				</ul>
 				<ul class="list-unstyled channels">
-					<li ng-repeat="channel in beat.channels" class="channel channel-{{ channel.name.toLowerCase() }}">
+					<li ng-repeat="$channel in $channels" class="channel channel-{{ $channel.$id }}">
 						<ul class="list-inline spots" ng-if="editing">
-							<li ng-repeat="spot in spots" ng-click="addNote(channel, measure, spot)" class="spot" ng-style="{left: progress(spot, beat) * 100 + '%'}"></li>
+							<li ng-repeat="spot in guides" ng-click="addNote(beat.channels[$channel.$id], measure, spot)" class="spot" ng-style="{left: progress(spot, beat) * 100 + '%'}"></li>
 						</ul>
 						<ul class="list-inline notes">
-							<li ng-repeat="note in channel.notes | filterNotesByMeasure:beat:measure" ng-click="editing ? ($event.altKey ? alterNote(channel, note) : removeNote(channel, note)) : null" class="note" ng-class="{'note-alt': note < 0, 'note-hit': measure == $marker.measure && $marker.position >= progress(note, beat)}" ng-style="{left: progress(note, beat) * 100 + '%'}"></li>
+							<li ng-repeat="note in beat.channels[$channel.$id] | filterNotesByMeasure:beat:measure" ng-click="editing ? ($event.altKey ? alterNote(beat.channels[$channel.$id], note) : removeNote(beat.channels[$channel.$id], note)) : null" class="note" ng-class="{'note-alt': note < 0, 'note-hit': measure == $marker.measure && $marker.position >= progress(note, beat)}" ng-style="{left: progress(note, beat) * 100 + '%'}"></li>
 						</ul>
 					</li>
 				</ul>
-				<i class="indicator" ng-if="measure == $marker.measure" ng-style="{left: $marker.position * 100 + '%'}"></i>
+				<i class="indicator" ng-if="measure == $marker.measure" ng-style="{webkitTransform: 'translate3d(' + $marker.position * width + 'px, 0, 0)'}"></i>
 			</li>
 		</ul>
 		
-		<br>
-		
-		<fieldset>
-			<label>
-				Bars Per Line
-				<input type="number" ng-model="beat.barsPerMeasure" min="1">
-			</label>
-			<label>
-				Beats Per Bar
-				<input type="number" ng-model="beat.beatsPerBar" min="2">
-			</label>
-			<label>
-				Beat Unit
-				<select ng-model="beat.beatUnit" ng-options="b for b in [2,4,8,16]"></select>
-			</label>
-		</fieldset>
-		
-		<fieldset>
-			<button ng-click="$marker.play()">Play</button>
-			<button ng-click="$marker.pause()">Pause</button>
-			<button ng-click="$marker.stop()">Stop</button>
-		</fieldset>
-		
-		<fieldset>
-			<input type="number" ng-model="$marker.$bpm">
-			<button ng-repeat="b in [60, 90, 100, 120]" ng-click="$marker.play(b)">{{ b }}</button>
-		</fieldset>
-		
-		<label>
-			<input type="checkbox" ng-model="editing"> Edit Mode
-		</label>
+		<div class="grid-table">
+			<div>
+				<button ng-click="$marker.play()">Play</button>
+				<button ng-click="$marker.pause()">Pause</button>
+				<button ng-click="$marker.stop()">Stop</button>
+			</div>
+			<div>
+				<label>
+					Tempo
+					<input type="number" ng-model="$marker.$bpm">
+				</label>
+				<button ng-repeat="b in [60, 90, 100, 120]" ng-click="$marker.play(b)">{{ b }}</button>
+			</div>
+		</div>
 	</main>
 	
 	<!-- Scripts -->
