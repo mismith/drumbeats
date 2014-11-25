@@ -2,17 +2,23 @@ angular.module('firebaseHelper', ['firebase'])
 
 	.service('$firebaseHelper', ['$firebase', function($firebase){
 		var self   = this,
+			namespace = '',
 			cached = {};
+			
+		self.namespace = function(set){
+			if(set !== undefined) namespace = set;
+			return namespace;
+		};
 		
 		// returns: Reference
 		self.$ref = function(){
 			var args = Array.prototype.slice.call(arguments);
-			if( args[0] != 'constants') args.unshift('data');
+			//if( args[0] != 'constants') args.unshift('data');
 			
 			var path = 'Ref' + args.join('');
 			if(cached[path]) return cached[path];
 			
-			var $ref = new Firebase('https://ripkit.firebaseio.com/' + (args.join('/') || ''));
+			var $ref = new Firebase('https://' + namespace + '.firebaseio.com/' + (args.join('/') || ''));
 			cached[path] = $ref;
 			
 			return $ref;

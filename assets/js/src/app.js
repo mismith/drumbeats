@@ -1,9 +1,9 @@
 angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 	
 	.controller('AppCtrl', function($scope, $rootScope, $firebaseHelper){
-		$rootScope.console = console;
+		$firebaseHelper.namespace('drumbeats');
 		
-		$rootScope.editing = false;
+		$rootScope.console = console;
 	})
 	
 	.controller('BeatCtrl', function($scope, $rootScope, $timeout){
