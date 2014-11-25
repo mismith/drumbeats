@@ -18,16 +18,16 @@
 	<main ng-controller="BeatCtrl">
 		
 		<div class="grid-table">
-			<div ng-if=" ! editing">
-				<select ng-model="beat" ng-options="beat.name for beat in beats"></select>
-				<button ng-click="$root.editing = true">New</button>
+			<div ng-if=" ! editing()">
+				<select ng-model="$parent.selectedBeat" ng-options="$id as beat.name for ($id, beat) in beats"></select>
+				<button ng-click="reset(); editing(true)">New</button>
 			</div>
-			<div ng-if="editing">
+			<div ng-if="editing()">
 				<input type="text" ng-model="beat.name" placeholder="Name">
-				<button ng-click="$root.editing = false">Delete</button>
+				<button ng-click="delete(); editing(false)">Delete</button>
 			</div>
 		
-			<div>
+			<div ng-if="editing()">
 				<label>
 					Bars Per Line
 					<input type="number" ng-model="beat.barsPerLine" min="1">
@@ -38,28 +38,28 @@
 				</label>
 			</div>
 			
-			<div ng-if=" ! editing">
-				<button ng-click="$root.editing = true">Edit</button>
+			<div ng-if=" ! editing()">
+				<button ng-click="editing(true)">Edit</button>
 			</div>
-			<div ng-if="editing">
-				<button ng-click="$root.editing = false">Cancel</button>
-				<button ng-click="$root.editing = false">Save</button>
+			<div ng-if="editing()">
+				<button ng-click="editing(false)">Cancel</button>
+				<button ng-click="save(); editing(false)">Save</button>
 			</div>
 		</div>
 		
 		<ul class="list-unstyled measures" ng-resize="width = $width">
-			<li ng-repeat="measure in getMeasures(beat, editing)" class="measure">
+			<li ng-repeat="measure in getMeasures(beat)" class="measure">
 				<ul class="list-inline guides">
 					<li ng-repeat="guide in guides" class="guide" ng-class="{'guide-major': (guide - 1) % beat.beatsPerBar && (guide % 1 == 0), 'guide-bar': (guide - 1) % beat.beatsPerBar == 0}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}"></li>
 					<li ng-repeat="guide in guides" class="lyric lyric-{{ lyric(guide, beat, true) }}" ng-style="{left: progress(guide, beat, true) * 100 + '%'}">{{ lyric(guide, beat) }}</li>
 				</ul>
 				<ul class="list-unstyled channels">
-					<li ng-repeat="$channel in $channels" class="channel channel-{{ $channel.$id }}">
-						<ul class="list-inline spots" ng-if="editing">
-							<li ng-repeat="spot in guides" ng-click="addNote(beat.channels[$channel.$id], measure, spot)" class="spot" ng-style="{left: progress(spot, beat) * 100 + '%'}"></li>
+					<li ng-repeat="$channel in channels" class="channel channel-{{ $channel.$id }}">
+						<ul class="list-inline spots" ng-if="editing()">
+							<li ng-repeat="spot in guides" ng-click="addNote(beat, $channel.$id, measure, spot)" class="spot" ng-style="{left: progress(spot, beat) * 100 + '%'}"></li>
 						</ul>
 						<ul class="list-inline notes">
-							<li ng-repeat="note in beat.channels[$channel.$id] | filterNotesByMeasure:beat:measure" ng-click="editing ? ($event.altKey ? alterNote(beat.channels[$channel.$id], note) : removeNote(beat.channels[$channel.$id], note)) : null" class="note" ng-class="{'note-alt': note < 0, 'note-hit': measure == $marker.measure && $marker.position >= progress(note, beat)}" ng-style="{left: progress(note, beat) * 100 + '%'}"></li>
+							<li ng-repeat="note in beat.channels[$channel.$id] | filterNotesByMeasure:beat:measure" ng-click="editing() ? ($event.altKey ? alterNote(beat.channels[$channel.$id], note) : removeNote(beat.channels[$channel.$id], note)) : null" class="note" ng-class="{'note-alt': note < 0, 'note-hit': measure == $marker.measure && $marker.position >= progress(note, beat)}" ng-style="{left: progress(note, beat) * 100 + '%'}"></li>
 						</ul>
 					</li>
 				</ul>
@@ -67,7 +67,7 @@
 			</li>
 		</ul>
 		
-		<div class="grid-table">
+		<div ng-if="selectedBeat" class="grid-table">
 			<div>
 				<button ng-click="$marker.play()">Play</button>
 				<button ng-click="$marker.pause()">Pause</button>
@@ -85,8 +85,8 @@
 	
 	<!-- Scripts -->
 	<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.2.25/angular.min.js"></script>
-	<script src="//cdn.firebase.com/js/client/1.0.15/firebase.js"></script>
-	<script src="//cdn.firebase.com/libs/angularfire/0.8.2/angularfire.min.js"></script>
+	<script src="//cdn.firebase.com/js/client/2.0.4/firebase.js"></script>
+	<script src="//cdn.firebase.com/libs/angularfire/0.9.0/angularfire.min.js"></script>
 	
 	<script src="/assets/js/base.js"></script>
 </body>

@@ -2,17 +2,23 @@ angular.module('firebaseHelper', ['firebase'])
 
 	.service('$firebaseHelper', ['$firebase', function($firebase){
 		var self   = this,
+			namespace = '',
 			cached = {};
+			
+		self.namespace = function(set){
+			if(set !== undefined) namespace = set;
+			return namespace;
+		};
 		
 		// returns: Reference
 		self.$ref = function(){
 			var args = Array.prototype.slice.call(arguments);
-			if( args[0] != 'constants') args.unshift('data');
+			//if( args[0] != 'constants') args.unshift('data');
 			
 			var path = 'Ref' + args.join('');
 			if(cached[path]) return cached[path];
 			
-			var $ref = new Firebase('https://ripkit.firebaseio.com/' + (args.join('/') || ''));
+			var $ref = new Firebase('https://' + namespace + '.firebaseio.com/' + (args.join('/') || ''));
 			cached[path] = $ref;
 			
 			return $ref;
@@ -88,77 +94,33 @@ angular.module('firebaseHelper', ['firebase'])
 angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 	
 	.controller('AppCtrl', ["$scope", "$rootScope", "$firebaseHelper", function($scope, $rootScope, $firebaseHelper){
-		$rootScope.console = console;
+		$firebaseHelper.namespace('drumbeats');
 		
-		$rootScope.editing = false;
+		$rootScope.console = console;
 	}])
 	
-	.controller('BeatCtrl', ["$scope", "$rootScope", "$timeout", function($scope, $rootScope, $timeout){
-		$scope.$channels = [
-			{
-				'.priority': 1.0,
-				$id: 'bass',
-				name: 'Bass',
-			},
-			{
-				'.priority': 2.0,
-				$id: 'hihat',
-				name: 'HiHat',
-			},
-			{
-				'.priority': 3.0,
-				$id: 'snare',
-				name: 'Snare',
-			},
-			{
-				'.priority': 4.0,
-				$id: 'ride',
-				name: 'Ride',
-			},
-			{
-				'.priority': 5.0,
-				$id: 'crash',
-				name: 'Crash',
-			},
-			{
-				'.priority': 6.0,
-				$id: 'hitom',
-				name: 'Hi Tom',
-			},
-			{
-				'.priority': 7.0,
-				$id: 'lotom',
-				name: 'Lo Tom',
-			},
-			{
-				'.priority': 8.0,
-				$id: 'floortom',
-				name: 'Floor Tom',
-			},
-		];
-		$scope.beat = {
-			name: 'Beginner',
-			
-			// timing + display
-			beatsPerBar: 4,
-			barsPerLine: 2,
-			
-			// data
-			channels: {
-				bass:  [3, 7, 11, 15],
-				hihat: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
-				snare: [1, 5, 9, 13],
-			},
-		};
-		$scope.beats = [
-			$scope.beat,
-		];
+	.controller('BeatCtrl', ["$scope", "$rootScope", "$firebaseHelper", "$timeout", function($scope, $rootScope, $firebaseHelper, $timeout){
+		$scope.channels = $firebaseHelper.$get('channels', true);
+		$scope.beats    = $firebaseHelper.$get('beats');
+		$scope.selectedBeat = 0;
+		$scope.beats.$loaded().then(function(){
+			$scope.$watch('selectedBeat', function(v){
+				$scope.beat = $scope.beats[v] || {};
+			});
+			$scope.$watchCollection('beat', function(){
+				$scope.guides = incrementArray($scope.beat);
+			});
+		});
 		
 		// timing
 		var beatsPerLine = function(beat){
+			if( ! beat) return 0;
+			
 			return beat.beatsPerBar * beat.barsPerLine;
 		};
 		var beatSubunit = function(beat){
+			if( ! beat || ! beat.beatsPerBar) return 0;
+			
 			if(beat.beatsPerBar % 4 == 0){
 				return 1/4;
 			}else if(beat.beatsPerBar % 3 == 0){
@@ -168,21 +130,21 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		};
 		
 		var incrementArray = function(beat){
+			if( ! beat) return [];
+			
 			var array = [];
-			var increment = beatSubunit(beat);
+			var subunit = beatSubunit(beat);
 			for(var i = 0; i < beat.barsPerLine / beatSubunit(beat) * beat.beatsPerBar; i++){
-				var item = i * increment + 1;
+				var item = i * subunit + 1;
 				array.push(item);
 			}
 			//console.log(array);
 			return array;
 		}
-		$scope.$watchCollection('beat', function(){
-			$scope.guides = incrementArray($scope.beat);
-		});
 		
 		// math
 		var getLength = function(beat){
+			if( ! beat || ! beat.channels) return 0;
 			// get last set note index
 			var max = 0;
 			angular.forEach(beat.channels, function(channel){
@@ -198,7 +160,7 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		};
 		//getLength($scope.beat);
 		
-		$scope.getMeasures = function(beat, editing){
+		$scope.getMeasures = function(beat){
 			var measures = [];
 			// if editing enabled, + 1 to keep an empty period at the bottom to add new stuff
 			for(var i = 1; i <= getLength(beat) / beatsPerLine(beat) + (editing ? 1 : 0); i++){
@@ -274,14 +236,17 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 		};
 		
 		// editing
-		$scope.addNote = function(channel, measure, spot){
-			if( ! channel) channel = [];
+		$scope.addNote = function(beat, channel, measure, spot){
+			if( ! beat) beat = {};
+			if( ! beat.channels) beat.channels = {};
+			if( ! beat.channels[channel]) beat.channels[channel] = [];
 			
 			var note = spot + (measure - 1) * beatsPerLine($scope.beat);
 			
-			channel.push(note);
+			beat.channels[channel].push(note);
 			
-			//console.log(spot, measure, note);
+			console.log(beat, channel, measure, spot, note);
+			return note;
 		};
 		$scope.alterNote = function(channel, note){
 			var i = channel.indexOf(note);
@@ -295,18 +260,30 @@ angular.module('drumbeats', ['firebase', 'firebaseHelper'])
 			var i = channel.indexOf(note);
 			if(i >= 0) channel.splice(i, 1);
 		};
-/*
-		$scope.shiftNotes = function(amount){
-			if( ! amount) return;
-			
-			angular.forEach($scope.beat.channels, function(channel){
-				angular.forEach(channel, function(note, i){
-					channel[i] += amount;
-				});
-			});
-			//console.log($scope.beat);
+		
+		// CRUD
+		var editing = false;
+		$scope.editing = function(set){
+			if(set !== undefined) editing = set;
+			return editing;
 		};
-*/
+		$scope.reset = function(){
+			$scope.selectedBeat = 0;
+		};
+		$scope.delete = function(){
+			$scope.beats.$inst().$remove($scope.selectedBeat).then($scope.reset);
+		};
+		$scope.save = function(){
+			if($scope.selectedBeat){
+				// update
+				$scope.beats.$inst().$update($scope.selectedBeat, $scope.beat);
+			}else{
+				// create
+				$scope.beats.$inst().$push($scope.beat).then(function(snapshot){
+					$scope.selectedBeat = snapshot.key();
+				});
+			}
+		};
 		
 	}])
 	
