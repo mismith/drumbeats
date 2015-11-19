@@ -1,14 +1,17 @@
-angular.module('drumbeats', ['firebase', 'firebaseHelper'])
+angular.module('drumbeats', ['firebaseHelper'])
 	
-	.controller('AppCtrl', function($scope, $rootScope, $firebaseHelper){
-		$firebaseHelper.namespace('drumbeats');
-		
+	.config(function ($firebaseHelperProvider) {
+		$firebaseHelperProvider.namespace('mismith');
+		$firebaseHelperProvider.root('drumbeats');
+	})
+	.controller('AppCtrl', function($rootScope){
 		$rootScope.console = console;
 	})
 	
 	.controller('BeatCtrl', function($scope, $rootScope, $firebaseHelper, $timeout){
-		$scope.channels = $firebaseHelper.$get('channels', true);
-		$scope.beats    = $firebaseHelper.$get('beats');
+		$scope.channels = $firebaseHelper.array('channels');
+		$scope.beats    = $firebaseHelper.object('beats');
+		
 		$scope.selectedBeat = 0;
 		$scope.beats.$loaded().then(function(){
 			$scope.$watch('selectedBeat', function(v){
