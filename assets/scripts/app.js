@@ -14,6 +14,13 @@ angular.module('drumbeats', ['firebaseHelper'])
 		
 		$scope.selectedBeat = 0;
 		$scope.beats.$loaded().then(function(){
+			// auto-show the first beat once loaded
+			$scope.beats.forEach(function (beat, beatId) {
+				if (!$scope.selectedBeat) {
+					$scope.selectedBeat = beatId;
+				}
+			});
+
 			$scope.$watch('selectedBeat', function(v){
 				$scope.beat = $scope.beats[v] || {};
 			});
